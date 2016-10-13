@@ -1,0 +1,297 @@
+<!doctype html>
+<html>
+	<head>
+		<title></title>
+		<meta charset = "utf-8"/>
+	</head>
+
+<style type="text/css">
+#map{
+	position:relative;
+	left:50px;
+	top:50px;
+	width:500px;
+	height:400px;
+	background-image:url(images/bg.jpg);
+}
+
+</style>	
+
+<script type="text/javascript">
+
+//
+//需求：
+//1、首先要有地图（蛇的场所），
+//2、有蛇（）
+//3、食物
+
+
+//地图的数据
+//地图的初始值;
+var mapWidth;// mapWidth要是unitSize的整数倍
+var mapHeight;// mapWidth要是unitSize的整数倍
+
+
+//蛇的数据
+//定义一个数组，数组里保存这蛇身体每一节的坐标；
+var bodyArr = [];//第一个元素是蛇头；
+			
+//身体每一节的尺寸
+var unitSize=30;
+//蛇的初始长度;
+var initLength=6;
+//蛇的当前方向
+var direction="右";
+//蛇的速度；
+var speed = 100;
+//改变方向后，是否走过一节;
+var isGoStep=false;
+var snakeTimer=null;
+
+//食物的数据
+var food = {
+			left:-100,
+			top:-100
+		};
+
+
+//初始化函数(初始化的意思就是程序一开始运行时，相关的变量以及外观的初始状态)
+function init(){
+	//1、初始地图
+	mapWidth = 600;// mapWidth要是unitSize的整数倍
+	mapHeight = 300;// mapWidth要是unitSize的整数倍;
+	with(document.getElementById("map")){
+		style.width = mapWidth+"px";
+		style.height = mapHeight+"px";
+		style.backgroundImage="url(images/bg.jpg)";
+	}
+	
+	//2、初始蛇
+	unitSize=30;
+	initLength=4;
+	direction="右";
+	speed = 500;
+	
+	//希望蛇初始是横向的；
+	//头是数组的第一个元素；[{90,0},{60,0},{30,0},{0,0}]
+	//初始化的是数组的内容
+	for(var i=0;i<initLength;i++){
+		var unit = {left:(initLength-i-1)*unitSize,top:0}; //把数组第一个元素作为头；
+		bodyArr.push(unit);
+	}
+	//初始化外观
+	var map = document.getElementById("map");
+	//1)、头
+	var bodyDiv = document.createElement("div");//产生身体的一个单元
+	bodyDiv.id="bodyUnit1"; //蛇头的id为bodyUnit1
+	bodyDiv.style.cssText="position:absolute;left:"+bodyArr[0].left+"px;top:"+bodyArr[0].top+"px;width:"+unitSize+"px;height:"+unitSize+"px;";
+	bodyDiv.style.backgroundImage="url(images/head.png)";
+	map.appendChild(bodyDiv);
+	
+	//身体除头以外的其它节
+	for(var i=1;i<bodyArr.length;i++){
+		var bodyDiv = document.createElement("div");//产生身体的一个单元
+		bodyDiv.id="bodyUnit"+(i+1); //蛇头的id为bodyUnit1//[{60,0},{40,0},{20,0},{0,0}]
+		bodyDiv.style.cssText="position:absolute;left:"+bodyArr[i].left+"px;top:"+bodyArr[i].top+"px;width:"+unitSize+"px;height:"+unitSize+"px";
+		bodyDiv.style.backgroundImage="url(images/body.png)";
+		map.appendChild(bodyDiv);
+	}
+	direction="右";
+}
+		
+//走一步(改变蛇身体上每一节的坐标)
+function goStep(){
+	//1、先改变数组的数据
+	//1)、把数组中除了蛇头以外的其它节进行修改；
+	for(var i=bodyArr.length-1;i>0;i--){   //
+		bodyArr[i].left = bodyArr[i-1].left;
+		bodyArr[i].top = bodyArr[i-1].top;
+	}
+	//2)、改变蛇头；(考虑方向)
+	with(bodyArr[0]){
+		switch(direction){
+			case "左":left=left-unitSize; break;
+			case "上":top =top-unitSize; break;
+			case "右":left=left+unitSize; break;
+			case "下":top =top+unitSize; break;
+			default:;
+		}
+	}
+	
+	isGoStep=true;
+	var head = bodyArr[0];
+	
+	//3、判断蛇头是否和食物的坐标重合；
+	if(head.left==food.left && head.top==food.top){
+		//吃；
+		eat();
+	}
+	
+	//4、判断蛇头和边界以及自身是否有重合，如果有，则gameover
+	//出边界
+	if(head.left<0 || head.left>mapWidth-unitSize || head.top<0 || head.top>mapHeight-unitSize){
+			gameover();
+			return;
+	}
+	
+	//和身体的其它节比较
+	for(var i=1;i<bodyArr.length;i++){
+		if(head.left==bodyArr[i].left && head.top==bodyArr[i].top){
+			gameover();
+			return;
+		}
+	}
+	
+	//2、改变外观
+	for(var i=0;i<bodyArr.length;i++){
+		document.getElementById("bodyUnit"+(i+1)).style.left = bodyArr[i].left+"px";
+		document.getElementById("bodyUnit"+(i+1)).style.top = bodyArr[i].top+"px";
+	}
+	
+}
+
+//游戏结束
+function gameover(){
+	//1、停定时器；
+	if(snakeTimer!=null){
+		clearInterval(snakeTimer);
+	}
+	//2、询问是否继续游戏
+	if(confirm("亲，你怎么想不开呢？还要再来一局吗？")){
+		//1、清扫战场；
+		clearGame();
+		//2、重新开始游戏
+		startGame();
+	}else{
+		window.close();
+	}
+}
+
+//清除地图上的一切的一切
+function clearGame(){
+	//清空数组
+	bodyArr.length=0;
+	var map = document.getElementById("map");
+	map.innerHTML="";
+}
+
+//吃食物；
+function eat(){
+	//1、产生食物的新的坐标
+	generateFoodLocation();//产生食物的坐标；
+	var foodDiv = document.getElementById("foodId");
+	foodDiv.style.cssText="position:absolute;left:"+food.left+"px;top:"+food.top+"px;width:"+unitSize+"px;height:"+unitSize+"px;background-image:url(images/food.png)";
+	
+	//2、蛇长长
+	//1)、给数组里添加一个元素
+	var newUnit={left:-100,top:-100};//
+	bodyArr.push(newUnit);
+	
+	//2）、外观增加一个div(这是蛇身体新的一节)
+	var bodyDiv = document.createElement("div");//产生身体的一个单元
+	bodyDiv.id="bodyUnit"+bodyArr.length; //蛇头的id为bodyUnit1
+	bodyDiv.style.cssText="position:absolute;left:"+newUnit.left+"px;top:"+newUnit.top+"px;width:"+unitSize+"px;height:"+unitSize+"px";
+	bodyDiv.style.backgroundImage="url(images/body.png)";
+	map.appendChild(bodyDiv);
+	
+}
+
+//一直走
+function go(){
+	snakeTimer=setInterval("goStep()",speed);
+}
+
+//改变方向；
+function changeDirection(code){
+	switch(code){
+		case 37:if(direction!="右" && isGoStep){direction="左";isGoStep=false;}break;
+		case 38:if(direction!="下" && isGoStep){direction="上";isGoStep=false;}break;
+		case 39:if(direction!="左" && isGoStep){direction="右";isGoStep=false;}break;
+		case 40:if(direction!="上" && isGoStep){direction="下";isGoStep=false;}break;
+		default:;
+	}
+}
+
+//产生食物的坐标
+function generateFoodLocation(){
+	do{
+		//1、随机产生一个坐标（产生的坐标要是 unitSize=20 倍数，即0，20,40,60…… 
+							// left最大是地图宽度mapWidth(800)-unitSize）
+							// top最大是地图高度mapHeight(400)-unitSize）
+		food.left = parseInt(Math.random()*(mapWidth/unitSize))*unitSize;
+		food.top = parseInt(Math.random()*(mapHeight/unitSize))*unitSize;
+		var isRepeat=false;
+		for(var i=0;i<bodyArr.length;i++){
+			if(bodyArr[i].left==food.left && bodyArr[i].top==food.top){
+				isRepeat=true;
+				break;
+			}
+		}
+		if(food.left<0 || food.top<0 ||food.left>=mapWidth ||food.top>=mapHeight){
+			isRepeat = true;
+		}
+		console.log(food.left+","+food.top);
+	}while(isRepeat==true);
+	
+	if(food.left<0 || food.top<0 ||food.left>=mapWidth ||food.top>=mapHeight){
+		//console.log(food.left+","+food.top);
+		clearInterval(snakeTimer);
+		console.log("isRepeat="+isRepeat);
+	}
+	
+}
+
+//产生食物
+function generateFood(){
+	generateFoodLocation();
+	
+	//2、显示一个div
+	var foodDiv = document.createElement("div");
+	foodDiv.id="foodId";
+	foodDiv.style.cssText="position:absolute;left:"+food.left+"px;top:"+food.top+"px;width:"+unitSize+"px;height:"+unitSize+"px;background-image:url(images/food.png)";
+	document.getElementById("map").appendChild(foodDiv);
+}
+
+function startGame(){
+	//1、初始化
+	init();//初始化；
+	//2、让蛇开始走动
+	go();
+	//3、产生食物
+	generateFood();
+}
+
+window.onload=function(){
+	if(document.all){
+		document.body.onkeydown = function(){
+			changeDirection(event.keyCode);
+		}
+	}else{
+		document.body.onkeydown = function(evt){
+			changeDirection(evt.keyCode);
+		}
+	}
+	//startGame();
+}
+
+function pauseGame(){
+	clearInterval(snakeTimer);
+	
+}
+
+
+function continueGame(){
+	//go();
+	startGame();
+}
+
+
+</script>
+
+<body >
+	<input type="button" value="暂停" onclick="pauseGame()" />
+	<input type="button" value="继续" onclick="continueGame()" />
+	<div id="map">
+	</div>
+</body>
+</html>

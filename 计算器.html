@@ -1,0 +1,122 @@
+<!DOCTYPE html PUBLIC "-//W3C//Dli XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/Dli/xhtml1-transitional.dli">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>简易计算器</title>
+<style type="text/css"  />
+
+* { padding: 0; margin: 0; }
+li { list-style: none; }
+body { background: #940032; }
+
+#counter { width: 500px; height: 420px; background:#939; margin: 50px auto 0; position: relative; }
+#counter h2 { line-height: 42px; padding-left: 15px; font-size: 14px; font-family: arial; color: #ff3333; }
+#counter a { font-weight: normal; text-decoration: none; color: #ff3333; }
+#counter a:hover { text-decoration: underline; }
+#bg { width: 280px; height: 200px; border: 3px solid #680023; background: #990033; filter: alpha(opacity=80); opacity: 0.8; position: absolute; left: 50%; top: 115px; margin-left: -141px; }
+#counter_content { width: 250px; position: absolute; top: 130px; left: 130px; z-index: 1; }
+#counter_content h3 { margin-bottom: 10px; }
+#counter_content h3 input { border: none; width: 223px; height: 30px; line-height: 30px; padding: 0 10px; background: url(images/ico.png) no-repeat; text-align: right; color: #333; font-size: 14px; font-weight: bold; }
+#counter_content div { width: 250px; }
+#counter_content input { width: 60px; height: 30px; line-height: 30px; float: left; background: url(images/ico.png) no-repeat -303px 0; text-align: center; color: #fff; cursor: pointer; margin: 0 1px 4px 0; border:0; }
+#counter_content .active { background: url(images/ico.png) no-repeat -243px 0; }
+#counter p { width: 500px; position: absolute; bottom: 20px; left: 0; color: #ff3333; text-align: center; font-size: 12px; }
+</style>
+</head>
+<script type="text/javascript">
+
+//当事件触发后，调用一个函数，那么该函数中的this是事件的事件源。
+
+window.onload=function(){
+	var btns = document.getElementsByTagName("input");
+	for(var i=0;i<btns.length;i++){
+		btns[i].onclick = myIn;
+	}
+	init();
+}
+
+//运算： 两个操作数，一个操作符；
+
+var num1;// 第一个操作数
+var num2; //第二个操作数
+var oper; //随时保存着下一步该做运算
+var isOperLast;//上次输入是不是操作符；;
+
+function init(){
+	num1="";// 第一个操作数
+	num2=0; //第二个操作数
+	oper=""; //随时保存着下一步该做运算
+    isOperLast=false;//上次输入是不是操作符；//true;
+}
+
+function myIn(){
+	//只要输入数字，就赋给num2
+	//只要输入运算符，则，把num1=num2; 
+	//处理逻辑
+	if(this.value=="+" || this.value=="-" || this.value=="*" || this.value=="/"){
+		//看看要不要做运算；
+		if(oper!="" && !isOperLast){
+			num2=eval(num1+oper+num2);//35;	
+			oper="";// 清空运算符；
+		}
+		oper=this.value;
+		isOperLast=true;
+	}else if(this.value=="="){
+		if(oper!=""){//有运算符
+			num2=eval(num1+oper+num2);//35;	
+			oper="";// 清空运算符；
+		}
+		//isOperLast=false;
+	}else if(this.value.toLowerCase()=="c"){
+		init();
+	}else{//输入数字，处理数字
+		if(isOperLast){
+		//上次输入运算符，对于num2是替换，（表示新的数字开始，所有，覆盖num2）
+			num1 = num2;
+			num2=this.value;
+		}else{
+			//上次输入的是数字，对于num2是拼接（表示是继续输入数字，所以，拼接）
+			num2=num2*10+parseInt(this.value);
+		}
+		isOperLast=false;
+	}
+	
+	document.getElementById("tempDiv").innerHTML="num1="+num1+"<br/>num2="+num2+"<br/>oper="+oper;
+	document.getElementById("input1").value = num2;
+	
+}
+
+</script>
+</head>
+
+<body >
+
+<div id="counter">
+	<h2>简易计算</h2>
+	<div id="counter_content">
+		<h3><input id="input1" type="text" value="0" /></h3>
+		<div id="div1">
+			<input type="button" value="7" />
+            <input type="button" value="8" />
+            <input type="button" value="9"  />
+            <input type="button" value="+"  />
+            <input type="button" value="4"  />
+            <input type="button" value="5"  />
+            <input type="button" value="6"  />
+            <input type="button" value="-"  />
+            <input type="button" value="1"  />
+            <input type="button" value="2"  />
+            <input type="button" value="3"  />
+            <input type="button" value="*"  />
+            <input type="button" value="0"  />
+            <input type="button" value="C"  />
+            <input type="button" value="=" />
+            <input type="button" value="/" />
+		</div>
+	</div>
+	<div id="tempDiv">
+	</div>
+	
+</div>
+</body>
+</html>
